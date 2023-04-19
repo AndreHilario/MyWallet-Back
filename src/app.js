@@ -3,11 +3,13 @@ import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import Joi from "joi";
+import bcrypt from "bcrypt";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 dotenv.config();
+
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 try {
     await mongoClient.connect();
@@ -19,11 +21,9 @@ const db = mongoClient.db();
 
 app.post("/cadastro", async (req, res) => {
 
-    const email = req.body.email;
+    const { name, email, password } = req.body;
 
-    const user = {
-        email: email
-    }
+    const hash = bcrypt.hashSync(password, 10);
 
     const registerSchema = Joi.object({
         name: Joi.string().required(),
@@ -42,14 +42,14 @@ app.post("/cadastro", async (req, res) => {
     try {
 
         const searchUser = await db.collection("users").findOne({ email });
-        if (searchUser) {
-            res.status(409).send("E-mail already registered");
-        }
+        if (searchUser) res.status(409).send("E-mail already registered");
 
-        await db.collection("users").insertOne(user);
-        await db.collection("registrations").insertOne(req.body);
 
-        res.send(201);
+        await db.collection("users").insertOne({ name, email, password: hash });
+
+        console.log({name, email, password: hash})
+
+        res.sendStatus(201);
 
     } catch (err) {
         res.status(500).send(err.message);
