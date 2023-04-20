@@ -88,7 +88,7 @@ app.post("/", async (req, res) => {
 
         const token = uuid();
         await db.collection("sessions").insertOne({ token, idUser: infoLogin._id });
-        res.status(200).send({name: infoLogin.name, token});
+        res.status(200).send({ name: infoLogin.name, token });
 
     } catch (err) {
         res.status(500).send(err.message);
@@ -111,7 +111,7 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
     const verifyBody = { description, status: tipo, price };
 
     const numberSchema = Joi.object({
-        description: Joi.string().required(),
+        description: Joi.required(),
         status: Joi.string().valid("entrada", "saida").required(),
         price: Joi.number().positive().required()
     });
@@ -124,6 +124,10 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
     }
 
     try {
+
+        const session = await db.collection("sessions").findOne({ token });
+        if (!session) return res.sendStatus(401);
+
         const correctBody = { ...verifyBody, date: formatedDate };
         await db.collection("transactions").insertOne(correctBody);
 
@@ -143,13 +147,16 @@ app.get("/home", async (req, res) => {
 
     try {
 
+        const session = await db.collection("sessions").findOne({ token });
+        if (!session || !session.idUser) return res.sendStatus(401);
+
         const transactionsList = await db.collection("transactions").find().toArray();
         res.send(transactionsList);
 
     } catch (err) {
         res.status(500).send(err.message);
     }
-})
+});
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
