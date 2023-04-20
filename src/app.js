@@ -113,7 +113,7 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
     const numberSchema = Joi.object({
         description: Joi.required(),
         status: Joi.string().valid("entrada", "saida").required(),
-        price: Joi.number().positive().required()
+        price: Joi.number().positive().precision(2).required()
     });
 
     const validation = numberSchema.validate(verifyBody, { abortEarly: false });
@@ -128,7 +128,7 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
         const session = await db.collection("sessions").findOne({ token });
         if (!session) return res.sendStatus(401);
 
-        const correctBody = { ...verifyBody, date: formatedDate };
+        const correctBody = { ...verifyBody, date: formatedDate, idUser: session.idUser };
         await db.collection("transactions").insertOne(correctBody);
 
         res.sendStatus(201);
@@ -150,7 +150,9 @@ app.get("/home", async (req, res) => {
         const session = await db.collection("sessions").findOne({ token });
         if (!session || !session.idUser) return res.sendStatus(401);
 
-        const transactionsList = await db.collection("transactions").find().toArray();
+        const test = session.idUser
+
+        const transactionsList = await db.collection("transactions").find({idUser: test}).toArray();
         res.send(transactionsList);
 
     } catch (err) {
