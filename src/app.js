@@ -5,11 +5,14 @@ import dotenv from "dotenv";
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
+import dayjs from "dayjs";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 dotenv.config();
+//Fazer controllers no fim!
+
 
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 try {
@@ -48,8 +51,6 @@ app.post("/cadastro", async (req, res) => {
 
 
         await db.collection("users").insertOne({ name, email, password: hash });
-
-        console.log({ name, email, password: hash })
 
         res.sendStatus(201);
 
@@ -94,6 +95,62 @@ app.post("/", async (req, res) => {
     }
 });
 //Fim do login
+
+app.post("/nova-transacao/:tipo", async (req, res) => {
+
+    const { tipo } = req.params;
+    const { description, price } = req.body;
+    const { authorization } = req.headers;
+
+    const date = dayjs();
+    const formatedDate = date.format("DD/MM");
+
+    const token = authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).send("User unauthorized");
+
+    const verifyBody = { description, status: tipo, price };
+
+    const numberSchema = Joi.object({
+        description: Joi.string().required(),
+        status: Joi.string().valid("entrada", "saida").required(),
+        price: Joi.number().positive().required()
+    });
+
+    const validation = numberSchema.validate(verifyBody, { abortEarly: false });
+
+    if (validation.error) {
+        const errors = validation.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
+
+    try {
+        const correctBody = { ...verifyBody, date: formatedDate };
+        await db.collection("transactions").insertOne(correctBody);
+
+        res.sendStatus(201);
+
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+app.get("/home", async (req, res) => {
+
+    const { authorization } = req.headers;
+
+    const token = authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).send("User unauthorized");
+
+    try {
+
+        const transactionsList = await db.collection("transactions").find().toArray();
+        res.send(transactionsList);
+
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+})
+
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
 
