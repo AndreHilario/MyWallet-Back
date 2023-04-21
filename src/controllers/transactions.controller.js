@@ -43,10 +43,33 @@ export async function deleteTransaction(req, res) {
 
     try {
 
-        const deleteResult = await db.collection("transactions").deleteOne({_id: new ObjectId(id)});
-        if(deleteResult.deletedCount === 0) return res.status(404).send("Transaction not found");
+        const deleteResult = await db.collection("transactions").deleteOne({ _id: new ObjectId(id) });
+        if (deleteResult.deletedCount === 0) return res.status(404).send("Transaction not found");
 
         res.sendStatus(204);
+
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+};
+
+export async function editTransaction(req, res) {
+
+    try {
+
+        const session = res.locals.session;
+
+        const findTransaction = await db.collection("transactions").findOne({ idUser: session.idUser });
+        if (!findTransaction) return res.status(404).send("Transação não encontrada!");
+
+        if (!findTransaction.idUser.equals(session.idUser)) return res.status(401).send("Usuário não autorizado");
+
+        await db.collection("transactions").updateOne(
+            { _id: session.idUser },
+            { $set: req.body }
+        );
+
+        res.status(200).send("Transação atualizada");
 
     } catch (err) {
         res.status(500).send(err.message);

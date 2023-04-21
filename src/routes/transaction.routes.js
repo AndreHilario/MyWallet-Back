@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { deleteTransaction, getTransactions, setTransaction } from "../controllers/transactions.controller.js";
+import { deleteTransaction, editTransaction, getTransactions, setTransaction } from "../controllers/transactions.controller.js";
 import { validateSchema, validateSchemaParams } from "../middlewares/validateSchema.middleware.js";
 import { numberSchema } from "../schemas/number.schema.js";
 import { authValidation } from "../middlewares/auth.middleware.js";
@@ -15,5 +15,7 @@ transactionRouter.post("/nova-transacao/:tipo", validateSchemaParams(paramsSchem
 transactionRouter.get("/home", getTransactions);
 
 transactionRouter.delete("/home/:id", validateSchemaParams(paramsIdSchema), deleteTransaction);
+
+transactionRouter.put("/editar-registro/:tipo", validateSchema(numberSchema), editTransaction);
 
 export default transactionRouter;
