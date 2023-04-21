@@ -6,15 +6,15 @@ export async function setTransaction(req, res) {
     const { tipo } = req.params;
 
     const date = dayjs();
-    const formatedDate = date.format("DD/MM");
+    const formattedDate = date.format("DD/MM");
 
     try {
 
         const session = res.locals.session;
 
-        const correctBody = { ...req.body, status: tipo, date: formatedDate, idUser: session.idUser };
+        const correctBody = { ...req.body, status: tipo, date: formattedDate, idUser: session.idUser };
         await db.collection("transactions").insertOne(correctBody);
-
+        
         res.sendStatus(201);
 
     } catch (err) {
