@@ -2,12 +2,12 @@ import { ObjectId } from "mongodb";
 import { db } from "../database/database.connection.js";
 import dayjs from "dayjs";
 
+const date = dayjs();
+const formattedDate = date.format("DD/MM");
+
 export async function setTransaction(req, res) {
 
     const { tipo } = req.params;
-
-    const date = dayjs();
-    const formattedDate = date.format("DD/MM");
 
     try {
 
@@ -55,23 +55,25 @@ export async function deleteTransaction(req, res) {
 
 export async function editTransaction(req, res) {
 
+    const { tipo, id } = req.params;
+
     try {
+
+        const findTransaction = await db.collection("transactions").findOne({ _id: new ObjectId(id) });
+        if (!findTransaction) return res.sendStatus(404);
 
         const session = res.locals.session;
 
-        const findTransaction = await db.collection("transactions").findOne({ idUser: session.idUser });
-        if (!findTransaction) return res.status(404).send("Transação não encontrada!");
+        if (!findTransaction.idUser.equals(session.idUser)) return res.sendStatus(401);
 
-        if (!findTransaction.idUser.equals(session.idUser)) return res.status(401).send("Usuário não autorizado");
+        const editedBody = { ...req.body, status: tipo, date: formattedDate, idUser: session.idUser };
 
         await db.collection("transactions").updateOne(
-            { _id: session.idUser },
-            { $set: req.body }
+            { _id: new ObjectId(id) },
+            { $set: editedBody }
         );
-
-        res.status(200).send("Transação atualizada");
-
+        res.sendStatus(200);
     } catch (err) {
-        res.status(500).send(err.message);
+        res.status(500).send(err.message)
     }
-}
+};
