@@ -60,11 +60,11 @@ export async function editTransaction(req, res) {
     try {
 
         const findTransaction = await db.collection("transactions").findOne({ _id: new ObjectId(id) });
-        if (!findTransaction) return res.sendStatus(404);
+        if (!findTransaction) return res.status(404).send("Transaction not found");
 
         const session = res.locals.session;
 
-        if (!findTransaction.idUser.equals(session.idUser)) return res.sendStatus(401);
+        if (!findTransaction.idUser.equals(session.idUser)) return res.status(401).send("User unauthorized");
 
         const editedBody = { ...req.body, status: tipo, date: formattedDate, idUser: session.idUser };
 
